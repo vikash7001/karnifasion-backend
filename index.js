@@ -5,6 +5,9 @@ require("dotenv").config();
 const app = express();
 app.use(express.json());
 
+// --------------------------------------------
+// SQL CONFIG
+// --------------------------------------------
 const dbConfig = {
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
@@ -19,13 +22,16 @@ const dbConfig = {
   },
 
   options: {
-    encrypt: true,                  // Required for AWS RDS
-    trustServerCertificate: true    // FIXES THE ERROR
+    encrypt: true,              // required for AWS RDS
+    trustServerCertificate: true
   }
 };
 
 let pool;
 
+// --------------------------------------------
+// CONNECT TO SQL
+// --------------------------------------------
 async function connectDB() {
   try {
     pool = await sql.connect(dbConfig);
@@ -37,16 +43,55 @@ async function connectDB() {
 
 connectDB();
 
-// ----------------------
-// TEST ROUTE (ROOT)
-// ----------------------
+// --------------------------------------------
+// ROOT TEST ROUTE
+// --------------------------------------------
 app.get("/", (req, res) => {
   res.send("Karni Fashions API is live");
 });
 
-// ----------------------
+// --------------------------------------------
+// LOGIN ROUTE
+// --------------------------------------------
+app.post("/login", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ error: "Missing username or password" });
+    }
+
+    const result = await pool.request()
+      .input("username", sql.VarChar, username)
+      .input("password", sql.VarChar, password)
+      .query(`
+        SELECT UserID, Username 
+        FROM tblUsers 
+        WHERE Username = @username 
+          AND Password = @password
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(401).json({ error: "Invalid username or password" });
+    }
+
+    // Simple secure token (not JWT)
+    const token = Buffer.from(`${username}:${Date.now()}`).toString("base64");
+
+    res.json({
+      token: token,
+      user: result.recordset[0]
+    });
+
+  } catch (err) {
+    console.error("❌ LOGIN ERROR:", err);
+    res.status(500).json({ error: "Login failed" });
+  }
+});
+
+// --------------------------------------------
 // STOCK ROUTE
-// ----------------------
+// --------------------------------------------
 app.get("/stock", async (req, res) => {
   try {
     if (!pool) return res.status(503).json({ error: "DB connection not ready" });
@@ -57,40 +102,40 @@ app.get("/stock", async (req, res) => {
     `);
 
     res.json(result.recordset);
+
   } catch (err) {
     console.error("❌ STOCK ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
-// -------------------------
-// PRODUCTS ENDPOINT
-// -------------------------
+
+// --------------------------------------------
+// PRODUCTS ROUTE
+// --------------------------------------------
 app.get("/products", async (req, res) => {
-    try {
-        if (!pool) {
-            return res.status(500).json({ error: "DB connection not ready" });
-        }
+  try {
+    if (!pool) return res.status(503).json({ error: "DB connection not ready" });
 
-        const result = await pool.request().query(`
-            SELECT 
-                ProductID,
-                Item,
-                SeriesName,
-                CategoryName
-            FROM tblProduct
-            ORDER BY Item
-        `);
+    const result = await pool.request().query(`
+      SELECT 
+        ProductID,
+        Item,
+        SeriesName,
+        CategoryName
+      FROM tblProduct
+      ORDER BY Item
+    `);
 
-        res.json(result.recordset);
+    res.json(result.recordset);
 
-    } catch (error) {
-        console.error("Error fetching products:", error);
-        res.status(500).json({ error: "Failed to fetch products" });
-    }
+  } catch (err) {
+    console.error("❌ PRODUCTS ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch products" });
+  }
 });
 
-// ----------------------
+// --------------------------------------------
 // START SERVER
-// ----------------------
+// --------------------------------------------
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`🚀 Karni API running on port ${PORT}`));
