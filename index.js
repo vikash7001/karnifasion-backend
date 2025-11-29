@@ -62,6 +62,32 @@ app.get("/stock", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// -------------------------
+// PRODUCTS ENDPOINT
+// -------------------------
+app.get("/products", async (req, res) => {
+    try {
+        if (!pool) {
+            return res.status(500).json({ error: "DB connection not ready" });
+        }
+
+        const result = await pool.request().query(`
+            SELECT 
+                ProductID,
+                Item,
+                SeriesName,
+                CategoryName
+            FROM tblProduct
+            ORDER BY Item
+        `);
+
+        res.json(result.recordset);
+
+    } catch (error) {
+        console.error("Error fetching products:", error);
+        res.status(500).json({ error: "Failed to fetch products" });
+    }
+});
 
 // ----------------------
 // START SERVER
