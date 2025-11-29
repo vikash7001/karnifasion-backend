@@ -3,8 +3,17 @@ const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
+
+// Middlewares
 app.use(cors());
 app.use(express.json());
+
+// -------------------------
+// ROOT CHECK (optional but helpful)
+// -------------------------
+app.get("/", (req, res) => {
+    res.send("Karni Fashions API is running");
+});
 
 // -------------------------
 // LOGIN
@@ -12,11 +21,23 @@ app.use(express.json());
 app.post("/login", (req, res) => {
     const { username, password } = req.body;
 
-    if (username === "admin" && password === "1234") {
-        return res.json({ token: "karni_token_123" });
+    if (!username || !password) {
+        return res.status(400).json({ error: "Username and password are required" });
     }
 
-    return res.status(401).json({ error: "Invalid username or password" });
+    // Simple static login
+    if (username === "admin" && password === "1234") {
+        return res.json({
+            success: true,
+            token: "karni_token_123",
+            message: "Login successful"
+        });
+    }
+
+    return res.status(401).json({
+        success: false,
+        error: "Invalid username or password"
+    });
 });
 
 // -------------------------
