@@ -65,17 +65,17 @@ app.post("/login", async (req, res) => {
       .input("username", sql.VarChar, username)
       .input("password", sql.VarChar, password)
       .query(`
-        SELECT UserID, Username 
-        FROM tblUsers 
-        WHERE Username = @username 
-          AND Password = @password
+        SELECT UserID, Username, FullName, Role
+        FROM tblUsers
+        WHERE Username = @username
+          AND PasswordHash = @password
       `);
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
 
-    // Simple secure token (not JWT)
+    // Simple token
     const token = Buffer.from(`${username}:${Date.now()}`).toString("base64");
 
     res.json({
