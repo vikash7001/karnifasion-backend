@@ -1,15 +1,37 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const sql = require("mssql");
 
 const app = express();
 
-// Middlewares
+// -------------------------
+// MIDDLEWARES
+// -------------------------
 app.use(cors());
 app.use(express.json());
 
 // -------------------------
-// ROOT CHECK (optional but helpful)
+// SQL SERVER CONFIG
+// -------------------------
+const dbConfig = {
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    server: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    options: {
+        encrypt: true,
+        trustServerCertificate: true
+    }
+};
+
+// Global connection pool
+let poolPromise = sql.connect(dbConfig).catch(err => {
+    console.error("SQL Connection Error:", err);
+});
+
+// -------------------------
+// ROOT CHECK
 // -------------------------
 app.get("/", (req, res) => {
     res.send("Karni Fashions API is running");
@@ -25,7 +47,6 @@ app.post("/login", (req, res) => {
         return res.status(400).json({ error: "Username and password are required" });
     }
 
-    // Simple static login
     if (username === "admin" && password === "1234") {
         return res.json({
             success: true,
@@ -40,30 +61,31 @@ app.post("/login", (req, res) => {
     });
 });
 
-// -------------------------
-// PRODUCTS
-// -------------------------
-app.get("/products", (req, res) => {
-    const sampleProducts = [
-        { name: "Kurti A", category: "Cotton" },
-        { name: "Kurti B", category: "Rayon" },
-        { name: "Kurti C", category: "Designer" }
-    ];
-
-    res.json(sampleProducts);
-});
 
 // -------------------------
-// STOCK
+// REAL STOCK SUMMARY (vwStockSummary)
 // -------------------------
-app.get("/stock", (req, res) => {
-    const sampleStock = [
-        { product: "Kurti A", qty: 10 },
-        { product: "Kurti B", qty: 5 },
-        { product: "Kurti C", qty: 15 }
-    ];
+app.get("/stocksummary", async (req, res) => {
+    try {
+        const pool = await poolPromise;
 
-    res.json(sampleStock);
+        const result = await pool.request().query(`
+            SELECT 
+                Item,
+                SeriesName,
+                CategoryName,
+                JaipurQty,
+                KolkataQty,
+                TotalQty
+            FROM vwStockSummary
+            ORDER BY Item;
+        `);
+
+        res.json(result.recordset);
+    } catch (err) {
+        console.error("Error fetching stock summary:", err);
+        res.status(500).json({ error: "Failed to fetch stock summary" });
+    }
 });
 
 // -------------------------
