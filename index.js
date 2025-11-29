@@ -1,56 +1,52 @@
-// index.js — minimal API
-require('dotenv').config();
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const helmet = require('helmet');
-const bcrypt = require('bcryptjs');
-const { getPool, sql } = require('./db');
+const express = require("express");
+const cors = require("cors");
+require("dotenv").config();
 
 const app = express();
-app.use(helmet());
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-const PORT = process.env.PORT || 4000;
+// -------------------------
+// LOGIN
+// -------------------------
+app.post("/login", (req, res) => {
+    const { username, password } = req.body;
 
-// POST /api/login
-app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body || {};
-  if (!username || !password) return res.status(400).json({ message: 'username+password required' });
-  try {
-    const pool = await getPool();
-    const result = await pool.request()
-      .input('username', sql.VarChar(50), username)
-      .query('SELECT UserID, Username, PasswordHash, FullName, Role FROM dbo.tblUsers WHERE Username = @username');
-    const user = result.recordset && result.recordset[0];
-    if (!user) return res.status(401).json({ message: 'invalid credentials' });
-    // if PasswordHash stored as plaintext (not recommended), compare directly; else use bcrypt
-    const hash = user.PasswordHash || '';
-    const match = (hash && hash.length>10) ? bcrypt.compareSync(password, hash) : (password === hash);
-    if (!match) return res.status(401).json({ message: 'invalid credentials' });
-    // Minimal token: return user object; you can add JWT if needed
-    return res.json({ token: 'dummy-token', user: { id: user.UserID, username: user.Username, fullName: user.FullName, role: user.Role }});
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: 'server error' });
-  }
+    if (username === "admin" && password === "1234") {
+        return res.json({ token: "karni_token_123" });
+    }
+
+    return res.status(401).json({ error: "Invalid username or password" });
 });
 
-// GET /api/stock
-// returns rows from vwStockSummary or tblStock (adapt if view name differs)
-app.get('/api/stock', async (req, res) => {
-  try {
-    const pool = await getPool();
-    // Adjust the view/table name if your DB uses different names
-    const result = await pool.request().query('SELECT Item, SeriesName, CategoryName, JaipurQty, KolkataQty, TotalQty FROM dbo.vwStockSummary');
-    return res.json(result.recordset || []);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: 'server error' });
-  }
+// -------------------------
+// PRODUCTS
+// -------------------------
+app.get("/products", (req, res) => {
+    const sampleProducts = [
+        { name: "Kurti A", category: "Cotton" },
+        { name: "Kurti B", category: "Rayon" },
+        { name: "Kurti C", category: "Designer" }
+    ];
+
+    res.json(sampleProducts);
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend listening on port ${PORT}`);
+// -------------------------
+// STOCK
+// -------------------------
+app.get("/stock", (req, res) => {
+    const sampleStock = [
+        { product: "Kurti A", qty: 10 },
+        { product: "Kurti B", qty: 5 },
+        { product: "Kurti C", qty: 15 }
+    ];
+
+    res.json(sampleStock);
 });
+
+// -------------------------
+// START SERVER
+// -------------------------
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`Karni API running on port ${port}`));
