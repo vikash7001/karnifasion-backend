@@ -206,22 +206,45 @@ app.get("/images/category/:category", async (req, res) => {
 // --------------------------------------------
 // STOCK ROUTE
 // --------------------------------------------
-app.get("/stock", async (req, res) => {
+// --------------------------------------------
+// STOCK ROUTE — Role Based
+// --------------------------------------------
+app.post("/stock", async (req, res) => {
   try {
-    if (!pool) return res.status(503).json({ error: "DB connection not ready" });
+    const { role, customerType } = req.body;
 
     const result = await pool.request().query(`
       SELECT Item, SeriesName, CategoryName, JaipurQty, KolkataQty, TotalQty
       FROM vwStockSummary
     `);
 
-    res.json(result.recordset);
+    let stock = result.recordset;
+
+    // BASIC CUSTOMER → no stock shown
+    if (role === "Customer" && customerType == 1) {
+      return res.json([]);
+    }
+
+    // PREMIUM CUSTOMER → show “Available”
+    if (role === "Customer" && customerType == 2) {
+      stock = stock.map(item => ({
+        Item: item.Item,
+        SeriesName: item.SeriesName,
+        CategoryName: item.CategoryName,
+        Availability: item.TotalQty > 5 ? "Available" : ""
+      }));
+      return res.json(stock);
+    }
+
+    // ADMIN + USER → show full stock
+    return res.json(stock);
 
   } catch (err) {
     console.error("❌ STOCK ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // --------------------------------------------
 // PRODUCTS ROUTE
