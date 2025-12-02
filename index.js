@@ -22,7 +22,7 @@ const dbConfig = {
   },
 
   options: {
-    encrypt: true,              // required for AWS RDS
+    encrypt: true,
     trustServerCertificate: true
   }
 };
@@ -65,7 +65,15 @@ app.post("/login", async (req, res) => {
       .input("username", sql.VarChar, username)
       .input("password", sql.VarChar, password)
       .query(`
-        SELECT UserID, Username, FullName, Role
+        SELECT 
+            UserID,
+            Username,
+            FullName,
+            Role,
+            CustomerType,
+            BusinessName,
+            Address,
+            Mobile
         FROM tblUsers
         WHERE Username = @username
           AND PasswordHash = @password
@@ -75,7 +83,6 @@ app.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid username or password" });
     }
 
-    // Simple token
     const token = Buffer.from(`${username}:${Date.now()}`).toString("base64");
 
     res.json({
