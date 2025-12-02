@@ -245,6 +245,82 @@ app.post("/stock", async (req, res) => {
   }
 });
 
+// --------------------------------------------
+// GET IMAGES BY MULTIPLE SERIES (POST)
+// Body: ["Rayon", "Printed", "Cotton"]
+// --------------------------------------------
+app.post("/images/series/list", async (req, res) => {
+  try {
+    const seriesList = req.body;  // array of series names
+
+    if (!Array.isArray(seriesList) || seriesList.length === 0) {
+      return res.status(400).json({ error: "Series list is empty" });
+    }
+
+    // Build SQL IN (...) safely
+    const params = seriesList.map((_, i) => `@S${i}`).join(",");
+    const request = pool.request();
+
+    seriesList.forEach((s, i) => {
+      request.input(`S${i}`, sql.VarChar, s);
+    });
+
+    const query = `
+      SELECT I.ProductID, I.ImageURL
+      FROM tblItemImages I
+      JOIN vwStockSummary S ON S.ProductID = I.ProductID
+      WHERE S.SeriesName IN (${params})
+        AND S.TotalQty > 4
+      ORDER BY I.ProductID
+    `;
+
+    const result = await request.query(query);
+
+    res.json(result.recordset);
+
+  } catch (err) {
+    console.error("❌ MULTI-SERIES IMAGE ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch images" });
+  }
+});
+// --------------------------------------------
+// GET IMAGES BY MULTIPLE CATEGORIES (POST)
+// Body: ["Kurtis", "Nightwear", "Tops"]
+// --------------------------------------------
+app.post("/images/category/list", async (req, res) => {
+  try {
+    const categoryList = req.body;  // array of category names
+
+    if (!Array.isArray(categoryList) || categoryList.length === 0) {
+      return res.status(400).json({ error: "Category list is empty" });
+    }
+
+    // Build SQL IN (...) safely
+    const params = categoryList.map((_, i) => `@C${i}`).join(",");
+    const request = pool.request();
+
+    categoryList.forEach((c, i) => {
+      request.input(`C${i}`, sql.VarChar, c);
+    });
+
+    const query = `
+      SELECT I.ProductID, I.ImageURL
+      FROM tblItemImages I
+      JOIN vwStockSummary S ON S.ProductID = I.ProductID
+      WHERE S.CategoryName IN (${params})
+        AND S.TotalQty > 4
+      ORDER BY I.ProductID
+    `;
+
+    const result = await request.query(query);
+
+    res.json(result.recordset);
+
+  } catch (err) {
+    console.error("❌ MULTI-CATEGORY IMAGE ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch images" });
+  }
+});
 
 // --------------------------------------------
 // PRODUCTS ROUTE
