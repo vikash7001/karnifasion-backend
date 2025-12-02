@@ -321,6 +321,25 @@ app.post("/images/category/list", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch images" });
   }
 });
+// --------------------------------------------
+// GET ALL ACTIVE SERIES
+// --------------------------------------------
+app.get("/series", async (req, res) => {
+  try {
+    const result = await pool.request().query(`
+      SELECT SeriesName
+      FROM tblSeries
+      WHERE IsActive = 1
+      ORDER BY SeriesName
+    `);
+
+    res.json(result.recordset);
+
+  } catch (err) {
+    console.error("❌ SERIES LIST ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch series list" });
+  }
+});
 
 // --------------------------------------------
 // PRODUCTS ROUTE
