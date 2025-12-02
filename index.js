@@ -291,6 +291,46 @@ app.get("/categories", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch categories" });
   }
 });
+// ----------------------------------------------------------
+// STOCK — role based POST
+// Body: { "role": "...", "customerType": 0|1|2 }
+// ----------------------------------------------------------
+app.post("/stock", async (req, res) => {
+  try {
+    const { role, customerType } = req.body;
+
+    const result = await pool.request().query(`
+      SELECT ProductID, Item, SeriesName, CategoryName, JaipurQty, KolkataQty, TotalQty
+      FROM vwStockSummary
+    `);
+
+    let stock = result.recordset;
+
+    // BASIC CUSTOMER → no stock shown
+    if (role === "Customer" && customerType == 1) {
+      return res.json([]);
+    }
+
+    // PREMIUM CUSTOMER → show “Available” only
+    if (role === "Customer" && customerType == 2) {
+      stock = stock.map(item => ({
+        ProductID: item.ProductID,
+        Item: item.Item,
+        SeriesName: item.SeriesName,
+        CategoryName: item.CategoryName,
+        Availability: item.TotalQty > 5 ? "Available" : ""
+      }));
+      return res.json(stock);
+    }
+
+    // ADMIN + USER → show full stock
+    return res.json(stock);
+
+  } catch (err) {
+    console.error("❌ STOCK ERROR:", err);
+    res.status(500).json({ error: err.message || "Failed to fetch stock" });
+  }
+});
 
 // ----------------------------------------------------------
 // PRODUCTS
