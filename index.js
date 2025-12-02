@@ -340,6 +340,25 @@ app.get("/series", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch series list" });
   }
 });
+// --------------------------------------------
+// GET ALL ACTIVE CATEGORIES
+// --------------------------------------------
+app.get("/categories", async (req, res) => {
+  try {
+    const result = await pool.request().query(`
+      SELECT CategoryName
+      FROM tblCategory
+      WHERE IsActive = 1
+      ORDER BY CategoryName
+    `);
+
+    res.json(result.recordset);
+
+  } catch (err) {
+    console.error("❌ CATEGORY LIST ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch category list" });
+  }
+});
 
 // --------------------------------------------
 // PRODUCTS ROUTE
