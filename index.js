@@ -4,12 +4,8 @@
 
 const express = require("express");
 const sql = require("mssql");
-const cors = require("cors");        // <-- ADDED
-require("dotenv").config();
+const cors = require("cors");
 
-const app = express();
-
-// CORS FIX (REQUIRED FOR FRONTEND TO CONNECT)
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST"],
@@ -17,6 +13,8 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+
 
 // ----------------------------------------------------------
 // SQL CONFIG
