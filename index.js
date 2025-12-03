@@ -5,7 +5,13 @@
 const express = require("express");
 const sql = require("mssql");
 const cors = require("cors");
+require("dotenv").config();   // <-- You forgot this
 
+const app = express();        // <-- You deleted this by mistake
+
+// ----------------------------------------------------------
+// GLOBAL CORS FIX (MUST RUN BEFORE ROUTES)
+// ----------------------------------------------------------
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST"],
@@ -13,8 +19,6 @@ app.use(cors({
 }));
 
 app.use(express.json());
-
-
 
 // ----------------------------------------------------------
 // SQL CONFIG
