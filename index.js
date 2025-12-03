@@ -4,9 +4,18 @@
 
 const express = require("express");
 const sql = require("mssql");
+const cors = require("cors");        // <-- ADDED
 require("dotenv").config();
 
 const app = express();
+
+// CORS FIX (REQUIRED FOR FRONTEND TO CONNECT)
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
+
 app.use(express.json());
 
 // ----------------------------------------------------------
