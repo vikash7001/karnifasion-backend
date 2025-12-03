@@ -5,17 +5,17 @@
 const express = require("express");
 const sql = require("mssql");
 const cors = require("cors");
-require("dotenv").config();   // <-- You forgot this
+require("dotenv").config();        // REQUIRED
 
-const app = express();        // <-- You deleted this by mistake
+const app = express();              // REQUIRED
 
 // ----------------------------------------------------------
-// GLOBAL CORS FIX (MUST RUN BEFORE ROUTES)
+// GLOBAL CORS FIX (MUST BE BEFORE ROUTES)
 // ----------------------------------------------------------
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"]
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(express.json());
