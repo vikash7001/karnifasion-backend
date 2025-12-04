@@ -416,6 +416,66 @@ app.post("/incoming", async (req, res) => {
     res.status(500).json({ error: err.message || "Failed to post incoming" });
   }
 });
+app.get("/customers", async (req, res) => {
+  try {
+    const result = await pool.request().query(`
+      SELECT CustomerName
+      FROM tblCustomers
+      WHERE IsActive = 1
+      ORDER BY CustomerName
+    `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("❌ CUSTOMERS ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch customers" });
+  }
+});
+app.post("/sales", async (req, res) => {
+  try {
+    const { UserName, Location, Customer, VoucherNo, Rows } = req.body;
+
+    if (!UserName || !Location || !Array.isArray(Rows) || Rows.length === 0) {
+      return res.status(400).json({ error: "Invalid input format" });
+    }
+
+    // -------------------------------------------
+    // TVP (SalesDetailType)
+    // -------------------------------------------
+    const tvp = new sql.Table("SalesDetailType");
+    tvp.columns.add("Item", sql.NVarChar(200));
+    tvp.columns.add("SeriesName", sql.NVarChar(100));
+    tvp.columns.add("CategoryName", sql.NVarChar(100));
+    tvp.columns.add("Quantity", sql.Decimal(18, 2));
+
+    Rows.forEach(r => {
+      tvp.rows.add(r.Item, r.SeriesName, r.CategoryName, r.Quantity);
+    });
+
+    // -------------------------------------------
+    // Execute SP
+    // -------------------------------------------
+    const request = pool.request();
+    request.input("UserName", sql.NVarChar(100), UserName);
+    request.input("Location", sql.NVarChar(100), Location);
+    request.input("Customer", sql.NVarChar(100), Customer);
+    request.input("VoucherNo", sql.NVarChar(50), VoucherNo);
+    request.input("Details", tvp);
+    request.output("SalesID", sql.Int);
+
+    const result = await request.execute("usp_PostSales_MultiRow");
+
+    return res.json({
+      success: true,
+      salesID: result.output.SalesID,
+      rowsPosted: Rows.length
+    });
+
+  } catch (err) {
+    console.error("❌ SALES POST ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ----------------------------------------------------------
 // START SERVER
