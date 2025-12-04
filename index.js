@@ -420,8 +420,7 @@ app.get("/customers", async (req, res) => {
   try {
     const result = await pool.request().query(`
       SELECT CustomerName
-      FROM tblCustomers
-      WHERE IsActive = 1
+      FROM tblCustomer
       ORDER BY CustomerName
     `);
 
