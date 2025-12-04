@@ -361,6 +361,52 @@ app.get("/products", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch products" });
   }
 });
+// ----------------------------------------------------------
+// POST INCOMING (MULTI ROW WITH TVP)
+// ----------------------------------------------------------
+app.post("/incoming", async (req, res) => {
+  try {
+    const { UserName, Location, Rows } = req.body;
+
+    if (!UserName || !Location || !Array.isArray(Rows) || Rows.length === 0) {
+      return res.status(400).json({ error: "Invalid input format" });
+    }
+
+    // -------------------------------------------
+    // BUILD TVP (IncomingDetailType)
+    // -------------------------------------------
+    const tvp = new sql.Table("IncomingDetailType");
+    tvp.columns.add("Item", sql.NVarChar(200));
+    tvp.columns.add("SeriesName", sql.NVarChar(100));
+    tvp.columns.add("CategoryName", sql.NVarChar(100));
+    tvp.columns.add("Quantity", sql.Decimal(18, 2));
+
+    Rows.forEach(r => {
+      tvp.rows.add(r.Item, r.SeriesName, r.CategoryName, r.Quantity);
+    });
+
+    // -------------------------------------------
+    // EXECUTE STORED PROCEDURE
+    // -------------------------------------------
+    const request = pool.request();
+    request.input("UserName", sql.NVarChar(100), UserName);
+    request.input("Location", sql.NVarChar(100), Location);
+    request.input("Details", tvp);
+    request.output("IncomingHeaderID", sql.Int);
+
+    const result = await request.execute("usp_PostIncoming_MultiRow");
+
+    return res.json({
+      success: true,
+      headerID: result.output.IncomingHeaderID,
+      rowsPosted: Rows.length
+    });
+
+  } catch (err) {
+    console.error("❌ INCOMING POST ERROR:", err);
+    res.status(500).json({ error: err.message || "Failed to post incoming" });
+  }
+});
 
 // ----------------------------------------------------------
 // START SERVER
