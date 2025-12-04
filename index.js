@@ -346,19 +346,28 @@ app.post("/stock", async (req, res) => {
 // ----------------------------------------------------------
 // PRODUCTS
 // ----------------------------------------------------------
+// --- DEBUG /products route (temporary) ---
 app.get("/products", async (req, res) => {
+  console.log(`[${new Date().toISOString()}] /products called. Authorization:`, req.headers.authorization ? 'present' : 'missing');
+
   try {
-    const result = await pool.request().query(`
-      SELECT ProductID, Item, SeriesName, CategoryName
-      FROM tblProduct
-      ORDER BY Item
-    `);
+    // query that returns product-like rows
+    const q = `
+      SELECT DISTINCT ProductID, Item, SeriesName, CategoryName
+      FROM vwStockSummary
+      ORDER BY Item;
+    `;
+    console.log(`[${new Date().toISOString()}] Running SQL: vwStockSummary query`);
+    const result = await pool.request().query(q);
 
-    res.json(result.recordset);
-
+    console.log(`[${new Date().toISOString()}] /products returned rows:`, (result && result.recordset && result.recordset.length) || 0);
+    return res.json(result.recordset);
   } catch (err) {
-    console.error("❌ PRODUCTS ERROR:", err);
-    res.status(500).json({ error: "Failed to fetch products" });
+    // verbose error for debugging — will appear in your server logs
+    console.error(`[${new Date().toISOString()}] /products ERROR:`, err && (err.message || err));
+    if (err && err.stack) console.error(err.stack);
+    // return the actual error message (temporary) so frontend network response shows it
+    return res.status(500).json({ error: err.message || "Failed to fetch products - see server logs" });
   }
 });
 // ----------------------------------------------------------
