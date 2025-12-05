@@ -485,6 +485,58 @@ app.post("/sales", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// ----------------------------------------------------------
+// SAVE / UPDATE IMAGE BY ITEM
+// Body: { Item: "10001", ImageURL: "https://drive.google.com/..." }
+// ----------------------------------------------------------
+app.post("/image/save", async (req, res) => {
+  try {
+    const { Item, ImageURL } = req.body;
+    if (!Item || !ImageURL) return res.status(400).json({ error: "Item and ImageURL required" });
+
+    // convert Google Drive share link -> direct view if present
+    function convertDrive(url) {
+      try {
+        const m = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+        if (m && m[1]) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+        return url;
+      } catch { return url; }
+    }
+    const finalUrl = convertDrive(ImageURL);
+
+    // find ProductID by Item (Item is design number string)
+    const find = await pool.request()
+      .input("Item", sql.NVarChar, Item)
+      .query(`SELECT ProductID FROM tblProduct WHERE Item = @Item`);
+
+    if (!find.recordset.length) return res.status(404).json({ error: "Item not found" });
+
+    const productId = find.recordset[0].ProductID;
+
+    // upsert into tblItemImages (one row per product)
+    const exists = await pool.request()
+      .input("ProductID", sql.Int, productId)
+      .query(`SELECT ProductID FROM tblItemImages WHERE ProductID = @ProductID`);
+
+    if (exists.recordset.length) {
+      await pool.request()
+        .input("ProductID", sql.Int, productId)
+        .input("ImageURL", sql.VarChar(sql.MAX), finalUrl)
+        .query(`UPDATE tblItemImages SET ImageURL = @ImageURL WHERE ProductID = @ProductID`);
+    } else {
+      await pool.request()
+        .input("ProductID", sql.Int, productId)
+        .input("ImageURL", sql.VarChar(sql.MAX), finalUrl)
+        .query(`INSERT INTO tblItemImages (ProductID, ImageURL) VALUES (@ProductID, @ImageURL)`);
+    }
+
+    return res.json({ success: true, ProductID: productId, ImageURL: finalUrl });
+
+  } catch (err) {
+    console.error("❌ IMAGE SAVE ERROR:", err);
+    return res.status(500).json({ error: "Failed to save image" });
+  }
+});
 
 // ----------------------------------------------------------
 // START SERVER
