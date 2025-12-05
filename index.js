@@ -537,6 +537,28 @@ app.post("/image/save", async (req, res) => {
     return res.status(500).json({ error: "Failed to save image" });
   }
 });
+// ----------------------------------------------------------
+// LIST ALL PRODUCTS WITH IMAGE URLs (for editing panel)
+// ----------------------------------------------------------
+app.get("/images/list", async (req, res) => {
+  try {
+    const result = await pool.request().query(`
+      SELECT 
+        P.ProductID,
+        P.Item,
+        ISNULL(I.ImageURL, '') AS ImageURL
+      FROM tblProduct P
+      LEFT JOIN tblItemImages I ON I.ProductID = P.ProductID
+      ORDER BY P.Item
+    `);
+
+    return res.json(result.recordset);
+
+  } catch (err) {
+    console.error("❌ IMAGE LIST ERROR:", err);
+    return res.status(500).json({ error: "Failed to fetch image list" });
+  }
+});
 
 // ----------------------------------------------------------
 // START SERVER
