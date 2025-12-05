@@ -559,6 +559,44 @@ app.get("/images/list", async (req, res) => {
     return res.status(500).json({ error: "Failed to fetch image list" });
   }
 });
+// ----------------------------------------------------------
+// GET SERIES THAT HAVE AT LEAST ONE ITEM WITH STOCK > 5
+// ----------------------------------------------------------
+app.get("/series/active-with-stock", async (req, res) => {
+  try {
+    const result = await pool.request().query(`
+      SELECT DISTINCT S.SeriesName
+      FROM vwStockSummary S
+      WHERE (S.JaipurQty > 5 OR S.KolkataQty > 5)
+      ORDER BY S.SeriesName
+    `);
+
+    res.json(result.recordset);
+
+  } catch (err) {
+    console.error("❌ SERIES STOCK ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch series with stock" });
+  }
+});
+// ----------------------------------------------------------
+// GET CATEGORIES THAT HAVE AT LEAST ONE ITEM WITH STOCK > 5
+// ----------------------------------------------------------
+app.get("/categories/active-with-stock", async (req, res) => {
+  try {
+    const result = await pool.request().query(`
+      SELECT DISTINCT S.CategoryName
+      FROM vwStockSummary S
+      WHERE (S.JaipurQty > 5 OR S.KolkataQty > 5)
+      ORDER BY S.CategoryName
+    `);
+
+    res.json(result.recordset);
+
+  } catch (err) {
+    console.error("❌ CATEGORY STOCK ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch categories with stock" });
+  }
+});
 
 // ----------------------------------------------------------
 // START SERVER
