@@ -1,6 +1,12 @@
 // ----------------------------------------------------------
 // KARNI FASHIONS BACKEND (CLEAN REWRITE)
 // ----------------------------------------------------------
+const admin = require("firebase-admin");
+const serviceAccount = require("./karni-fashion-1f0b6-firebase-adminsdk-fbsvc-c049a0f084.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 const express = require("express");
 const sql = require("mssql");
