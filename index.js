@@ -2,7 +2,8 @@
 // KARNI FASHIONS BACKEND (CLEAN REWRITE)
 // ----------------------------------------------------------
 const admin = require("firebase-admin");
-const serviceAccount = require("./karni-fashion-1f0b6-firebase-adminsdk-fbsvc-c049a0f084.json");
+
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
