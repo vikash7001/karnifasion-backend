@@ -126,6 +126,24 @@ app.post("/signup", async (req, res) => {
     res.status(500).json({ error: "Signup failed" });
   }
 });
+app.post("/send-notification", async (req, res) => {
+  const { token, title, body } = req.body;
+
+  const message = {
+    token: token,
+    notification: {
+      title: title,
+      body: body
+    }
+  };
+
+  try {
+    const response = await admin.messaging().send(message);
+    res.json({ success: true, response });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // ----------------------------------------------------------
 // GET IMAGE BY PRODUCT ID
